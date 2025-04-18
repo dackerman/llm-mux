@@ -279,7 +279,7 @@ export default function BranchHome() {
             
             {/* Title and Branch Info */}
             <div className="flex items-center">
-              <h1 className="text-lg font-semibold mr-2">LLM Compare</h1>
+              <h1 className="text-lg font-semibold mr-2">Hatch</h1>
               
               {/* Models Button */}
               <Button
@@ -342,7 +342,7 @@ export default function BranchHome() {
             <div className="flex flex-col space-y-4 pb-20">
               {/* Welcome message if no turns */}
               {(!branchTurns || branchTurns.length === 0) && (
-                <TurnSystemMessage content="Welcome to LLM Compare! Select the AI models you want to use and ask a question to compare their responses." />
+                <TurnSystemMessage content="Welcome to Hatch! Select the AI models you want to use and ask a question to compare their responses." />
               )}
 
               {/* Display turns */}
