@@ -1,6 +1,6 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage-pg-setup";
 import { z } from "zod";
 import { insertChatSchema, insertMessageSchema, LLMProviderSchema } from "@shared/schema";
 import { generateLLMResponse } from "./llm";
