@@ -1,12 +1,13 @@
 import { db } from './db';
 import { IStorage } from './storage';
-import { eq } from 'drizzle-orm';
+import { eq, desc, and, or } from 'drizzle-orm';
 import {
   User, InsertUser,
   Chat, InsertChat,
   Message, InsertMessage,
   ApiKey, InsertApiKey,
-  users, chats, messages, apiKeys
+  Turn, InsertTurn,
+  users, chats, messages, apiKeys, turns
 } from '@shared/schema';
 
 export class PostgresStorage implements IStorage {

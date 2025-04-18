@@ -5,13 +5,16 @@ import {
   chats, 
   messages, 
   apiKeys,
+  turns,
   type Chat, 
   type InsertChat, 
   type Message, 
   type InsertMessage,
   type ApiKey,
   type InsertApiKey,
-  type LLMProvider
+  type LLMProvider,
+  type Turn,
+  type InsertTurn
 } from "@shared/schema";
 
 export interface IStorage {
@@ -27,9 +30,16 @@ export interface IStorage {
   updateChatTitle(id: number, title: string): Promise<Chat | undefined>;
   deleteChat(id: number): Promise<boolean>;
   
-  // Message management
+  // Legacy Message management
   getMessages(chatId: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+  
+  // Turn management (for branching conversation model)
+  getTurns(chatId: number): Promise<Turn[]>;
+  getTurnsByBranch(chatId: number, branchId: string): Promise<Turn[]>;
+  createTurn(turn: InsertTurn): Promise<Turn>;
+  getLastUserTurn(chatId: number): Promise<Turn | undefined>;
+  getBranchTurns(chatId: number, branchId: string): Promise<Turn[]>;
   
   // API key management
   getApiKey(provider: string): Promise<string | undefined>;
@@ -40,6 +50,7 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private chats: Map<number, Chat>;
   private messages: Map<number, Message[]>;
+  private turns: Map<number, Turn[]>; // Indexed by chatId
   private apiKeys: Map<string, string>;
   currentUserId: number;
   currentChatId: number;
@@ -49,6 +60,7 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.chats = new Map();
     this.messages = new Map();
+    this.turns = new Map();
     this.apiKeys = new Map();
     this.currentUserId = 1;
     this.currentChatId = 1;
@@ -62,6 +74,7 @@ export class MemStorage implements IStorage {
     };
     this.chats.set(defaultChat.id, defaultChat);
     this.messages.set(defaultChat.id, []);
+    this.turns.set(defaultChat.id, []);
 
     // Set sample API keys (These are invalid and will be replaced by environment variables)
     this.apiKeys.set('claude', process.env.ANTHROPIC_API_KEY || '');
@@ -125,10 +138,11 @@ export class MemStorage implements IStorage {
     
     this.chats.delete(id);
     this.messages.delete(id);
+    this.turns.delete(id);
     return true;
   }
 
-  // Message methods
+  // Message methods (Legacy)
   async getMessages(chatId: number): Promise<Message[]> {
     return this.messages.get(chatId) || [];
   }
@@ -143,7 +157,8 @@ export class MemStorage implements IStorage {
     const message: Message = {
       ...insertMessage,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      modelId: insertMessage.modelId || null
     };
     
     const chatMessages = this.messages.get(chatId) || [];
@@ -157,6 +172,62 @@ export class MemStorage implements IStorage {
     }
     
     return message;
+  }
+
+  // Turn methods (New branching conversation model)
+  async getTurns(chatId: number): Promise<Turn[]> {
+    return this.turns.get(chatId) || [];
+  }
+
+  async getTurnsByBranch(chatId: number, branchId: string): Promise<Turn[]> {
+    const chatTurns = this.turns.get(chatId) || [];
+    return chatTurns.filter(turn => turn.branchId === branchId || turn.branchId === 'root');
+  }
+
+  async createTurn(insertTurn: InsertTurn): Promise<Turn> {
+    const chatId = insertTurn.chatId;
+    if (!this.turns.has(chatId)) {
+      this.turns.set(chatId, []);
+    }
+
+    // Generate a UUID for the new turn
+    const id = crypto.randomUUID();
+    
+    const turn: Turn = {
+      ...insertTurn,
+      id,
+      timestamp: new Date(),
+      parentTurnId: insertTurn.parentTurnId || null,
+      model: insertTurn.model || null
+    };
+    
+    const chatTurns = this.turns.get(chatId) || [];
+    chatTurns.push(turn);
+    this.turns.set(chatId, chatTurns);
+    
+    // Update chat title if this is the first user turn
+    if (turn.role === 'user' && chatTurns.filter(t => t.role === 'user').length === 1) {
+      const title = turn.content.slice(0, 30) + (turn.content.length > 30 ? '...' : '');
+      this.updateChatTitle(chatId, title);
+    }
+    
+    return turn;
+  }
+
+  async getLastUserTurn(chatId: number): Promise<Turn | undefined> {
+    const chatTurns = this.turns.get(chatId) || [];
+    return [...chatTurns]
+      .filter(turn => turn.role === 'user')
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+  }
+
+  async getBranchTurns(chatId: number, branchId: string): Promise<Turn[]> {
+    const allTurns = this.turns.get(chatId) || [];
+    
+    // Get all turns that are in the root branch or the specified branch
+    return allTurns.filter(turn => 
+      turn.branchId === 'root' || turn.branchId === branchId
+    ).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
 
   // API key methods
