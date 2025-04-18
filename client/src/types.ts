@@ -6,6 +6,7 @@ export interface Chat {
   createdAt: string;
 }
 
+// Legacy Message interface
 export interface Message {
   id: number;
   chatId: number;
@@ -13,6 +14,25 @@ export interface Message {
   role: 'user' | 'assistant';
   modelId: LLMProvider | null;
   createdAt: string;
+}
+
+// New Turn interface for branching conversations
+export interface Turn {
+  id: string;
+  chatId: number;
+  parentTurnId: string | null;
+  branchId: string;
+  role: 'user' | 'assistant';
+  model: LLMProvider | null;
+  content: string;
+  timestamp: string;
+}
+
+// Branch model represents a conversation path
+export interface Branch {
+  id: string;
+  provider: LLMProvider | null;
+  isCurrent: boolean;
 }
 
 export interface ApiKeyStatus {
