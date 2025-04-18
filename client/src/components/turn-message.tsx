@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { marked } from "marked";
 
 interface TurnMessageProps {
   turn: Turn;
@@ -103,12 +104,12 @@ export function TurnMessage({
                 {turn.content.replace('Error: ', '')}
               </p>
             ) : (
-              <div dangerouslySetInnerHTML={{ 
-                __html: turn.content
-                  .replace(/\n\n/g, '</p><p>')
-                  .replace(/\n/g, '<br>')
-                  .replace(/^(.+?)$/, '<p>$1</p>')
-              }} />
+              <div 
+                className="prose prose-sm dark:prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ 
+                  __html: marked(turn.content, { breaks: true }) 
+                }} 
+              />
             )}
           </div>
           
@@ -194,12 +195,9 @@ export function TurnMessage({
                     </p>
                   ) : (
                     <div 
-                      className="text-sm"
+                      className="prose prose-sm dark:prose-invert max-w-none"
                       dangerouslySetInnerHTML={{ 
-                        __html: branch.content
-                          .replace(/\n\n/g, '</p><p>')
-                          .replace(/\n/g, '<br>')
-                          .replace(/^(.+?)$/, '<p>$1</p>')
+                        __html: marked(branch.content, { breaks: true }) 
                       }} 
                     />
                   )}
@@ -254,12 +252,9 @@ export function TurnMessage({
                           </p>
                         ) : (
                           <div 
-                            className="text-sm"
+                            className="prose prose-sm dark:prose-invert max-w-none"
                             dangerouslySetInnerHTML={{ 
-                              __html: branch.content
-                                .replace(/\n\n/g, '</p><p>')
-                                .replace(/\n/g, '<br>')
-                                .replace(/^(.+?)$/, '<p>$1</p>')
+                              __html: marked(branch.content, { breaks: true }) 
                             }} 
                           />
                         )}
