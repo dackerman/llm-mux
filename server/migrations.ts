@@ -16,7 +16,10 @@ export async function runMigrations() {
   
   // Run the migrations
   try {
-    await migrate(db, { migrationsFolder: 'drizzle' });
+    // Using drizzle folder for migrations
+    await migrate(db, { 
+      migrationsFolder: './drizzle' 
+    });
     console.log('Migrations completed successfully');
   } catch (error) {
     console.error('Migration failed:', error);
