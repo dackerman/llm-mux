@@ -24,6 +24,16 @@ export default function Home() {
   const [selectedModels, setSelectedModels] = useLocalStorage<LLMProvider[]>('selectedModels', ['claude', 'gemini']);
   const [currentChatId, setCurrentChatId] = useState<number>(1);
 
+  // Get all chats
+  const { data: chats } = useQuery({
+    queryKey: ['/api/chats'],
+    queryFn: async () => {
+      const response = await fetch('/api/chats');
+      if (!response.ok) throw new Error('Failed to fetch chats');
+      return response.json() as Promise<Chat[]>;
+    }
+  });
+
   // API key status query
   const { data: apiKeyStatuses } = useQuery({
     queryKey: ['/api/api-keys'],
@@ -78,7 +88,7 @@ export default function Home() {
     enabled: !!currentChatId
   });
 
-  // Check for API keys on initial load
+  // Check for API keys on initial load and ensure we have a chat
   useEffect(() => {
     if (apiKeyStatuses) {
       const configuredProviders = apiKeyStatuses.filter(status => status.hasKey).map(status => status.provider);
@@ -98,6 +108,17 @@ export default function Home() {
       ));
     }
   }, [apiKeyStatuses]);
+
+  // Create a default chat if none exist
+  useEffect(() => {
+    if (chats && chats.length === 0) {
+      // No chats exist, create one
+      handleCreateNewChat();
+    } else if (chats && chats.length > 0) {
+      // Use the most recent chat
+      setCurrentChatId(chats[0].id);
+    }
+  }, [chats]);
 
   const toggleModel = (provider: LLMProvider) => {
     if (!apiKeyStatuses) return;
