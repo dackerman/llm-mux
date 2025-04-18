@@ -55,32 +55,48 @@ export function ChatMessage({ message }: ChatMessageProps) {
   // For specific LLM responses
   const provider = message.modelId;
   const config = LLM_PROVIDERS[provider];
+  const isError = message.content.startsWith('Error:');
 
   return (
     <div className="flex items-start" ref={messageRef}>
       <div 
-        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mr-3"
-        style={{ backgroundColor: config.color }}
+        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
+          isError ? 'bg-red-500' : ''
+        }`}
+        style={{ backgroundColor: isError ? undefined : config.color }}
       >
-        <span className="material-icons text-white text-sm">smart_toy</span>
+        <span className="material-icons text-white text-sm">
+          {isError ? 'error' : 'smart_toy'}
+        </span>
       </div>
       <div className="flex flex-col space-y-1 max-w-2xl">
         <div className="flex items-center">
           <span 
-            className="text-xs font-medium mr-2"
-            style={{ color: config.color }}
+            className={`text-xs font-medium mr-2 ${isError ? 'text-red-500' : ''}`}
+            style={{ color: isError ? undefined : config.color }}
           >
-            {config.name}
+            {config.name} {isError ? '(Error)' : ''}
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400">{timeAgo}</span>
         </div>
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-lg text-sm">
-          <div dangerouslySetInnerHTML={{ 
-            __html: message.content
-              .replace(/\n\n/g, '</p><p>')
-              .replace(/\n/g, '<br>')
-              .replace(/^(.+?)$/, '<p>$1</p>')
-          }} />
+        <div className={`${
+          isError 
+            ? 'bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30' 
+            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+          } p-3 rounded-lg text-sm`}
+        >
+          {isError ? (
+            <p className={`${isError ? 'text-red-600 dark:text-red-400' : ''}`}>
+              {message.content.replace('Error: ', '')}
+            </p>
+          ) : (
+            <div dangerouslySetInnerHTML={{ 
+              __html: message.content
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>')
+                .replace(/^(.+?)$/, '<p>$1</p>')
+            }} />
+          )}
         </div>
       </div>
     </div>

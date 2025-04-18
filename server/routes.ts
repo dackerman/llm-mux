@@ -124,12 +124,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             provider,
             success: true
           };
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Error with ${provider}:`, error);
+          
+          // Store the error message as a model response
+          const errorMessage = error.message || "Failed to generate response";
+          await storage.createMessage({
+            chatId,
+            content: `Error: ${errorMessage}`,
+            role: "assistant",
+            modelId: provider
+          });
+          
           return {
             provider,
             success: false,
-            error: error.message || "Failed to generate response"
+            error: errorMessage
           };
         }
       });
@@ -145,9 +155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         results,
         messages
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Message error:", error);
-      res.status(400).json({ message: "Failed to process message", error: error.message });
+      res.status(400).json({ message: "Failed to process message", error: error.message || "Unknown error" });
     }
   });
 
