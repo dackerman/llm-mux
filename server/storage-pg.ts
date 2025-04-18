@@ -1,6 +1,6 @@
 import { db } from './db';
 import { IStorage } from './storage';
-import { eq, desc, and, or } from 'drizzle-orm';
+import { eq, desc, and, or, inArray } from 'drizzle-orm';
 import {
   User, InsertUser,
   Chat, InsertChat,
@@ -144,40 +144,25 @@ export class PostgresStorage implements IStorage {
   }
 
   async getBranchTurns(chatId: number, branchId: string): Promise<Turn[]> {
-    // First, get all user turns from the root branch
-    const rootTurns = await db.select()
+    // Get all turns from the specified chat
+    const allTurnsForChat = await db.select()
       .from(turns)
-      .where(
-        and(
-          eq(turns.chatId, chatId),
-          eq(turns.branchId, 'root')
-        )
-      );
-      
-    // Get the IDs of those root user turns
-    const rootTurnIds = rootTurns.map(t => t.id);
-      
-    // Now get all turns from the specified branch
-    // AND all assistant turns that are responses to any root turn
-    const branchTurns = await db.select()
-      .from(turns)
-      .where(
-        and(
-          eq(turns.chatId, chatId),
-          or(
-            eq(turns.branchId, branchId),
-            and(
-              eq(turns.role, 'assistant'),
-              turns.parentTurnId.in(rootTurnIds)
-            )
-          )
-        )
-      );
-      
-    // Combine and sort by timestamp
-    const allTurns = [...rootTurns, ...branchTurns];
+      .where(eq(turns.chatId, chatId));
+    
+    // Filter in JavaScript rather than SQL for complex conditions
+    const rootTurns = allTurnsForChat.filter(turn => turn.branchId === 'root');
+    const rootTurnIds = rootTurns.map(turn => turn.id);
+    
+    // Get turns from the specific branch
+    const branchTurns = allTurnsForChat.filter(turn => 
+      turn.branchId === branchId || 
+      (turn.role === 'assistant' && turn.parentTurnId && rootTurnIds.includes(turn.parentTurnId))
+    );
+    
+    // Combine, deduplicate and sort
+    const combinedTurns = [...rootTurns, ...branchTurns];
     const uniqueTurns = Array.from(
-      new Map(allTurns.map(turn => [turn.id, turn])).values()
+      new Map(combinedTurns.map(turn => [turn.id, turn])).values()
     );
     
     return uniqueTurns.sort((a, b) => 

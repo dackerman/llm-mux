@@ -224,10 +224,28 @@ export class MemStorage implements IStorage {
   async getBranchTurns(chatId: number, branchId: string): Promise<Turn[]> {
     const allTurns = this.turns.get(chatId) || [];
     
-    // Get all turns that are in the root branch or the specified branch
-    return allTurns.filter(turn => 
-      turn.branchId === 'root' || turn.branchId === branchId
-    ).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    // Get all root branch turns
+    const rootTurns = allTurns.filter(turn => turn.branchId === 'root');
+    
+    // Get the IDs of root turns for finding related assistant responses
+    const rootTurnIds = rootTurns.map(turn => turn.id);
+    
+    // Get turns from the specified branch plus any assistant turns that are responses
+    // to root turns (regardless of their branch)
+    const branchSpecificTurns = allTurns.filter(turn => 
+      (turn.branchId === branchId) || 
+      (turn.role === 'assistant' && turn.parentTurnId && rootTurnIds.includes(turn.parentTurnId))
+    );
+    
+    // Combine, deduplicate, and sort
+    const combinedTurns = [...rootTurns, ...branchSpecificTurns];
+    const uniqueTurns = Array.from(
+      new Map(combinedTurns.map(turn => [turn.id, turn])).values()
+    );
+    
+    return uniqueTurns.sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
   }
 
   // API key methods
