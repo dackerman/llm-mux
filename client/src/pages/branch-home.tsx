@@ -315,7 +315,7 @@ export default function BranchHome() {
                 onClick={() => setIsModelSelectionOpen(true)}
                 className="flex items-center space-x-1"
               >
-                <span className="material-icons text-sm">smart_toy</span>
+                <span className="material-icons text-sm">chat</span>
                 <span>Models ({selectedModels.length})</span>
               </Button>
               
@@ -331,7 +331,7 @@ export default function BranchHome() {
                     }}
                     className="flex items-center space-x-1"
                   >
-                    <span className="material-icons text-sm">fork_right</span>
+                    <span className="material-icons text-sm">account_tree</span>
                     <span>{branches.find(b => b.id === currentBranchId)?.provider || 'Main'}</span>
                   </Button>
                 </div>

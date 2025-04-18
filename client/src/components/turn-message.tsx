@@ -121,7 +121,7 @@ export function TurnMessage({
                 onClick={() => onContinueWithBranch(turn.branchId)}
                 className="text-xs"
               >
-                <span className="material-icons text-xs mr-1">subdirectory_arrow_right</span>
+                <span className="material-icons text-xs mr-1">arrow_forward</span>
                 Continue with this response
               </Button>
             </div>
@@ -161,9 +161,11 @@ export function TurnMessage({
                   className={`p-3 ${
                     isError 
                       ? 'bg-red-50 dark:bg-red-900/10' 
-                      : (config ? `bg-opacity-10 dark:bg-opacity-5` : 'bg-white dark:bg-gray-800')
+                      : 'bg-white dark:bg-gray-800'
                   }`}
-                  style={config && !isError ? { backgroundColor: config.bgColor } : undefined}
+                  style={config && !isError ? { 
+                    borderLeft: `3px solid ${config.color}` 
+                  } : undefined}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span 
@@ -230,9 +232,11 @@ export function TurnMessage({
                       className={`p-3 h-full flex flex-col ${
                         isError 
                           ? 'bg-red-50 dark:bg-red-900/10' 
-                          : (config ? `bg-opacity-10 dark:bg-opacity-5` : 'bg-white dark:bg-gray-800')
+                          : 'bg-white dark:bg-gray-800'
                       }`}
-                      style={config && !isError ? { backgroundColor: config.bgColor } : undefined}
+                      style={config && !isError ? { 
+                        borderLeft: `3px solid ${config.color}` 
+                      } : undefined}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span 
