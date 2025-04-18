@@ -1,20 +1,23 @@
-# Multi-LLM Chat Comparison
+# Hatch: Multi-LLM Chat Platform
 
-A modern web application that allows you to chat with multiple large language models simultaneously and compare their responses side-by-side.
+A modern web application that allows you to chat with multiple large language models simultaneously, compare their responses side-by-side, and branch conversations based on preferred responses.
 
-![Multi-LLM Chat Comparison](./screenshot.png)
+![Hatch Multi-LLM Chat Platform](./screenshot.png)
 
 ## Features
 
 - **Multi-Model Conversations**: Send a single message to multiple LLMs at once and compare their responses
+- **Powerful Branching System**: Continue conversations with your preferred model's response, creating multiple parallel conversation paths
 - **Supported Models**:
   - 🟣 **Claude** (Anthropic) - Latest Claude 3.7 Sonnet
   - 🟢 **GPT** (OpenAI) - Latest GPT-4o model
   - 🔵 **Gemini** (Google) - Latest Gemini Pro model
   - 🟠 **Grok** (xAI) - Latest Grok model
 - **Clean Interface**: Focus on the conversation with a distraction-free design
-- **Persistent Storage**: Chat history is saved to a PostgreSQL database
+- **Markdown Support**: All chat messages support rich markdown formatting for better readability
+- **Persistent Storage**: Chat history and branch data saved to a PostgreSQL database
 - **API Key Management**: Securely save your API keys for various providers
+- **Responsive Design**: Optimized for both desktop and mobile experiences
 
 ## Getting Started
 
@@ -58,7 +61,15 @@ A modern web application that allows you to chat with multiple large language mo
    - Press Enter or click the send button to submit
    - Your message will be sent to all selected models simultaneously
 
-4. **Managing API Keys**:
+4. **Using the Branching System**:
+   - After receiving a response, click "Compare with..." button below your message
+   - Select multiple AI models you'd like to compare
+   - View responses side-by-side (desktop) or in accordion format (mobile)
+   - Click "Continue with this response" under any model's response to follow that branch
+   - The conversation will continue along that specific path, maintaining context with that model
+   - [Read the detailed Branching Guide for more information](./docs/branching-guide.md)
+
+5. **Managing API Keys**:
    - Click on the settings icon in the header
    - Enter your API keys for the different LLM providers
    - Keys are securely stored in the database
@@ -83,7 +94,11 @@ A modern web application that allows you to chat with multiple large language mo
 ### Database Schema
 - **Users**: Authentication and user management
 - **Chats**: Conversation containers
-- **Messages**: Individual messages within chats
+- **Messages**: Legacy message storage (for backward compatibility)
+- **Turns**: New message model supporting branching conversations
+  - Tracks parent-child relationships between messages
+  - Stores branch identifiers for conversation pathways
+  - Connects messages with specific LLM models
 - **API Keys**: Securely stored provider API keys
 
 ## Development
@@ -102,6 +117,8 @@ A modern web application that allows you to chat with multiple large language mo
 - `/shared`: Shared code between frontend and backend
   - `/schema.ts`: Database schema and type definitions
 - `/drizzle`: Database migrations
+- `/docs`: Documentation files
+  - `/branching-guide.md`: Detailed guide to the LLM branching system
 
 ### Running Database Migrations
 
