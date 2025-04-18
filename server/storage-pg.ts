@@ -54,15 +54,16 @@ export class PostgresStorage implements IStorage {
   }
 
   async deleteChat(id: number): Promise<boolean> {
-    // First delete all messages associated with the chat
+    // First delete all messages and turns associated with the chat
     await db.delete(messages).where(eq(messages.chatId, id));
+    await db.delete(turns).where(eq(turns.chatId, id));
     
     // Then delete the chat
     const result = await db.delete(chats).where(eq(chats.id, id)).returning();
     return result.length > 0;
   }
 
-  // Message management
+  // Message management (Legacy)
   async getMessages(chatId: number): Promise<Message[]> {
     return await db.select()
       .from(messages)
@@ -76,6 +77,85 @@ export class PostgresStorage implements IStorage {
       createdAt: new Date()
     }).returning();
     return result[0];
+  }
+  
+  // Turn management (New branching conversation model)
+  async getTurns(chatId: number): Promise<Turn[]> {
+    return await db.select()
+      .from(turns)
+      .where(eq(turns.chatId, chatId))
+      .orderBy(turns.timestamp);
+  }
+
+  async getTurnsByBranch(chatId: number, branchId: string): Promise<Turn[]> {
+    return await db.select()
+      .from(turns)
+      .where(
+        and(
+          eq(turns.chatId, chatId),
+          or(
+            eq(turns.branchId, branchId),
+            eq(turns.branchId, 'root')
+          )
+        )
+      )
+      .orderBy(turns.timestamp);
+  }
+
+  async createTurn(insertTurn: InsertTurn): Promise<Turn> {
+    const result = await db.insert(turns).values({
+      ...insertTurn,
+      timestamp: new Date()
+    }).returning();
+    
+    // If this is a user turn, update chat title for the first message
+    if (insertTurn.role === 'user') {
+      const userTurns = await db.select()
+        .from(turns)
+        .where(
+          and(
+            eq(turns.chatId, insertTurn.chatId),
+            eq(turns.role, 'user')
+          )
+        );
+      
+      if (userTurns.length === 1) {
+        const title = insertTurn.content.slice(0, 30) + (insertTurn.content.length > 30 ? '...' : '');
+        await this.updateChatTitle(insertTurn.chatId, title);
+      }
+    }
+    
+    return result[0];
+  }
+
+  async getLastUserTurn(chatId: number): Promise<Turn | undefined> {
+    const result = await db.select()
+      .from(turns)
+      .where(
+        and(
+          eq(turns.chatId, chatId),
+          eq(turns.role, 'user')
+        )
+      )
+      .orderBy(desc(turns.timestamp))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getBranchTurns(chatId: number, branchId: string): Promise<Turn[]> {
+    return await db.select()
+      .from(turns)
+      .where(
+        and(
+          eq(turns.chatId, chatId),
+          or(
+            eq(turns.branchId, 'root'),
+            eq(turns.branchId, branchId)
+          )
+        )
+      )
+      .orderBy(turns.timestamp);
   }
 
   // API key management
