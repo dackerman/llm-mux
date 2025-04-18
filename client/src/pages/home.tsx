@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { LLMProvider, Message, Chat } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { LLMCard } from "@/components/llm-card";
 import { ChatMessage, SystemMessage } from "@/components/chat-message";
 import { InputArea } from "@/components/input-area";
 import { SettingsModal } from "@/components/settings-modal";
+import { ModelSelectionDialog } from "@/components/model-selection-dialog";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ export default function Home() {
   
   // State
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isModelSelectionOpen, setIsModelSelectionOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedModels, setSelectedModels] = useLocalStorage<LLMProvider[]>('selectedModels', ['claude', 'gemini']);
   const [currentChatId, setCurrentChatId] = useState<number>(1);
@@ -51,8 +52,8 @@ export default function Home() {
     mutationFn: async () => {
       return apiRequest('POST', '/api/chats', { title: 'New Conversation' });
     },
-    onSuccess: (response) => {
-      const newChat = response.json();
+    onSuccess: async (response) => {
+      const newChat = await response.json();
       setCurrentChatId(newChat.id);
       queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
     }
@@ -150,11 +151,20 @@ export default function Home() {
               <span className="material-icons">menu</span>
             </button>
             
-            {/* Title (Mobile) */}
-            <h1 className="md:hidden text-lg font-semibold">LLM Compare</h1>
-
-            {/* Model Selection Label */}
-            <h2 className="hidden md:block text-lg font-medium">Select LLM Models</h2>
+            {/* Title and Chat Info */}
+            <div className="flex items-center">
+              <h1 className="text-lg font-semibold mr-2">LLM Compare</h1>
+              
+              {/* Models Button */}
+              <Button
+                variant="outline"
+                onClick={() => setIsModelSelectionOpen(true)}
+                className="flex items-center space-x-1"
+              >
+                <span className="material-icons text-sm">smart_toy</span>
+                <span>Models ({selectedModels.length})</span>
+              </Button>
+            </div>
             
             {/* Right Header Actions */}
             <div className="flex items-center space-x-3">
@@ -181,32 +191,6 @@ export default function Home() {
             </div>
           </div>
         </header>
-
-        {/* Model Selector */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <LLMCard 
-              provider="claude" 
-              isSelected={selectedModels.includes('claude')} 
-              onToggle={() => toggleModel('claude')} 
-            />
-            <LLMCard 
-              provider="openai" 
-              isSelected={selectedModels.includes('openai')} 
-              onToggle={() => toggleModel('openai')} 
-            />
-            <LLMCard 
-              provider="gemini" 
-              isSelected={selectedModels.includes('gemini')} 
-              onToggle={() => toggleModel('gemini')} 
-            />
-            <LLMCard 
-              provider="grok" 
-              isSelected={selectedModels.includes('grok')} 
-              onToggle={() => toggleModel('grok')} 
-            />
-          </div>
-        </div>
 
         {/* Chat Container */}
         <div className="flex-1 overflow-y-auto px-4 py-4 chat-container">
@@ -238,6 +222,15 @@ export default function Home() {
       <SettingsModal 
         isOpen={isSettingsModalOpen} 
         onClose={() => setIsSettingsModalOpen(false)} 
+      />
+      
+      {/* Model Selection Dialog */}
+      <ModelSelectionDialog
+        isOpen={isModelSelectionOpen}
+        onClose={() => setIsModelSelectionOpen(false)}
+        selectedModels={selectedModels}
+        onModelsChange={setSelectedModels}
+        apiKeyStatuses={apiKeyStatuses}
       />
       
       {/* Mobile Sidebar (hidden by default) */}
