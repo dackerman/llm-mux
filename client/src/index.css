@@ -11,3 +11,80 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Custom styling for markdown content */
+.prose {
+  @apply text-sm text-gray-800 dark:text-gray-200;
+}
+
+.prose p {
+  @apply my-2;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  @apply font-semibold mt-4 mb-2;
+}
+
+.prose h1 {
+  @apply text-xl;
+}
+
+.prose h2 {
+  @apply text-lg;
+}
+
+.prose h3 {
+  @apply text-base;
+}
+
+.prose ul, .prose ol {
+  @apply pl-5 my-2;
+}
+
+.prose ul {
+  @apply list-disc;
+}
+
+.prose ol {
+  @apply list-decimal;
+}
+
+.prose li {
+  @apply my-1;
+}
+
+.prose blockquote {
+  @apply pl-4 border-l-2 border-gray-300 dark:border-gray-700 italic;
+}
+
+.prose code {
+  @apply font-mono bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-xs;
+}
+
+.prose pre {
+  @apply font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded my-3;
+}
+
+.prose a {
+  @apply text-blue-600 dark:text-blue-400 hover:underline;
+}
+
+.prose strong, .prose b {
+  @apply font-semibold;
+}
+
+.prose em, .prose i {
+  @apply italic;
+}
+
+.prose img {
+  @apply max-w-full h-auto rounded;
+}
+
+.prose table {
+  @apply w-full border-collapse my-3;
+}
+
+.prose th, .prose td {
+  @apply border border-gray-300 dark:border-gray-700 px-2 py-1;
+}

@@ -6,6 +6,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { marked } from "marked";
 
+// Configure marked options
+marked.setOptions({
+  breaks: true // Convert \n to <br>
+});
+
 interface TurnMessageProps {
   turn: Turn;
   branches?: Turn[];
@@ -39,8 +44,13 @@ export function TurnMessage({
     return (
       <div className="flex flex-col space-y-2" ref={messageRef}>
         <div className="flex items-start justify-end">
-          <div className="bg-blue-500 text-white p-3 rounded-lg max-w-md ml-12 text-sm">
-            <p>{turn.content}</p>
+          <div className="bg-blue-500 text-white p-3 rounded-lg max-w-md ml-12">
+            <div 
+              className="prose prose-sm prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ 
+                __html: marked(turn.content, { breaks: true }) 
+              }} 
+            />
           </div>
           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center ml-3">
             <span className="material-icons text-white text-sm">person</span>
@@ -291,8 +301,13 @@ export function TurnSystemMessage({ content }: { content: string }) {
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3">
         <span className="material-icons text-blue-500 dark:text-blue-400 text-sm">info</span>
       </div>
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg max-w-md text-sm">
-        <p>{content}</p>
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg max-w-md">
+        <div
+          className="prose prose-sm dark:prose-invert max-w-none"
+          dangerouslySetInnerHTML={{ 
+            __html: marked(content, { breaks: true }) 
+          }}
+        />
       </div>
     </div>
   );
