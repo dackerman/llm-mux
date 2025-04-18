@@ -13,8 +13,8 @@ export async function generateAnthropicResponse(
     });
 
     // Convert our conversation history format to Anthropic's format
-    const messages: MessageParam[] = conversationHistory.map(msg => ({
-      role: msg.role as 'user' | 'assistant',
+    const messages = conversationHistory.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
       content: msg.content
     }));
 

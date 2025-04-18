@@ -77,8 +77,7 @@ function formatConversationHistory(
   
   // Convert to conversation format
   return recentMessages.map(msg => ({
-    role: msg.role,
-    content: msg.content,
-    modelId: msg.modelId
+    role: msg.role as 'user' | 'assistant',
+    content: msg.content
   }));
 }

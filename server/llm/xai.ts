@@ -1,15 +1,37 @@
 import OpenAI from "openai";
+import { ConversationMessage } from './index';
 
-export async function generateXAIResponse(prompt: string, apiKey: string): Promise<string> {
+export async function generateXAIResponse(
+  prompt: string, 
+  apiKey: string,
+  conversationHistory: ConversationMessage[] = []
+): Promise<string> {
   try {
     const openai = new OpenAI({ 
       baseURL: "https://api.x.ai/v1", 
       apiKey 
     });
 
+    // Convert our conversation history format to OpenAI-compatible format
+    const messages = conversationHistory.map(msg => ({
+      role: msg.role as 'user' | 'assistant' | 'system',
+      content: msg.content
+    }));
+
+    // If there's no history, just use the prompt directly
+    if (messages.length === 0) {
+      messages.push({ role: "user", content: prompt });
+    }
+
+    // Add system message for context
+    const systemMessage = {
+      role: "system",
+      content: "You are Grok, an advanced AI assistant by xAI. Respond to the user based on the conversation history provided."
+    };
+
     const response = await openai.chat.completions.create({
       model: "grok-3-beta",
-      messages: [{ role: "user", content: prompt }],
+      messages: [systemMessage, ...messages],
     });
 
     return response.choices[0].message.content || "";
