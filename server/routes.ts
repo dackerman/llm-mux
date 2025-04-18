@@ -166,6 +166,248 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Turn-based API routes for branching conversations
+  apiRouter.get("/chats/:chatId/turns", async (req: Request, res: Response) => {
+    try {
+      const chatId = parseInt(req.params.chatId);
+      const turns = await storage.getTurns(chatId);
+      res.json(turns);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch turns" });
+    }
+  });
+
+  apiRouter.get("/chats/:chatId/branches/:branchId", async (req: Request, res: Response) => {
+    try {
+      const chatId = parseInt(req.params.chatId);
+      const branchId = req.params.branchId;
+      const turns = await storage.getBranchTurns(chatId, branchId);
+      res.json(turns);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch branch" });
+    }
+  });
+
+  // Add a user turn
+  apiRouter.post("/chats/:chatId/turns", async (req: Request, res: Response) => {
+    try {
+      const chatId = parseInt(req.params.chatId);
+      
+      // Check if chat exists
+      const chat = await storage.getChat(chatId);
+      if (!chat) {
+        return res.status(404).json({ message: "Chat not found" });
+      }
+      
+      // Validate request
+      const turnRequestSchema = z.object({
+        content: z.string().min(1),
+        branchId: z.string(),
+        parentTurnId: z.string().optional(),
+        selectedModels: z.array(LLMProviderSchema)
+      });
+      
+      const { content, branchId, parentTurnId, selectedModels } = turnRequestSchema.parse(req.body);
+      
+      // Create user turn
+      const userTurn = await storage.createTurn({
+        chatId,
+        content,
+        role: "user",
+        branchId,
+        parentTurnId,
+        model: null
+      });
+      
+      // Get existing conversation for this branch
+      const conversationHistory = await storage.getBranchTurns(chatId, branchId);
+      
+      // Generate LLM responses in parallel for each selected model
+      const llmPromises = selectedModels.map(async (provider) => {
+        try {
+          const apiKey = await storage.getApiKey(provider);
+          
+          if (!apiKey) {
+            return {
+              provider,
+              success: false,
+              error: "API key not configured",
+              turnId: null
+            };
+          }
+          
+          // Generate a unique branch ID for this model's responses if not already in the root branch
+          const modelBranchId = branchId === 'root' ? provider : branchId;
+          
+          // Pass conversation history to the LLM for context
+          const response = await generateLLMResponseFromTurns(
+            provider, 
+            content, 
+            apiKey, 
+            conversationHistory
+          );
+          
+          // Save model response to storage as a turn
+          const assistantTurn = await storage.createTurn({
+            chatId,
+            content: response,
+            role: "assistant",
+            branchId: modelBranchId,
+            parentTurnId: userTurn.id,
+            model: provider
+          });
+          
+          return {
+            provider,
+            success: true,
+            turnId: assistantTurn.id,
+            branchId: modelBranchId
+          };
+        } catch (error: any) {
+          console.error(`Error with ${provider}:`, error);
+          
+          // Generate a unique branch ID for this model
+          const modelBranchId = branchId === 'root' ? provider : branchId;
+          
+          // Store the error message as a model turn
+          const errorMessage = error.message || "Failed to generate response";
+          const errorTurn = await storage.createTurn({
+            chatId,
+            content: `Error: ${errorMessage}`,
+            role: "assistant",
+            branchId: modelBranchId,
+            parentTurnId: userTurn.id,
+            model: provider
+          });
+          
+          return {
+            provider,
+            success: false,
+            error: errorMessage,
+            turnId: errorTurn.id,
+            branchId: modelBranchId
+          };
+        }
+      });
+      
+      // Wait for all LLM responses
+      const results = await Promise.all(llmPromises);
+      
+      // Get all turns for the chat, including new responses
+      const turns = await storage.getTurns(chatId);
+      
+      res.status(201).json({
+        userTurn,
+        results,
+        turns
+      });
+    } catch (error: any) {
+      console.error("Turn error:", error);
+      res.status(400).json({ message: "Failed to process turn", error: error.message || "Unknown error" });
+    }
+  });
+
+  // Request fan-out to multiple models from an existing user turn
+  apiRouter.post("/chats/:chatId/compare", async (req: Request, res: Response) => {
+    try {
+      const chatId = parseInt(req.params.chatId);
+      
+      // Validate request
+      const compareRequestSchema = z.object({
+        userTurnId: z.string(),
+        selectedModels: z.array(LLMProviderSchema)
+      });
+      
+      const { userTurnId, selectedModels } = compareRequestSchema.parse(req.body);
+      
+      // Get the user turn
+      const turns = await storage.getTurns(chatId);
+      const userTurn = turns.find(turn => turn.id === userTurnId && turn.role === 'user');
+      
+      if (!userTurn) {
+        return res.status(404).json({ message: "User turn not found" });
+      }
+      
+      // Get conversation history leading up to this turn
+      const conversationHistory = await storage.getBranchTurns(chatId, userTurn.branchId);
+      
+      // Generate LLM responses in parallel for each selected model
+      const llmPromises = selectedModels.map(async (provider) => {
+        try {
+          const apiKey = await storage.getApiKey(provider);
+          
+          if (!apiKey) {
+            return {
+              provider,
+              success: false,
+              error: "API key not configured",
+              turnId: null
+            };
+          }
+          
+          // Each model gets its own branch ID
+          const modelBranchId = provider;
+          
+          // Pass conversation history to the LLM for context
+          const response = await generateLLMResponseFromTurns(
+            provider, 
+            userTurn.content, 
+            apiKey, 
+            conversationHistory
+          );
+          
+          // Save model response as a turn
+          const assistantTurn = await storage.createTurn({
+            chatId,
+            content: response,
+            role: "assistant",
+            branchId: modelBranchId,
+            parentTurnId: userTurn.id,
+            model: provider
+          });
+          
+          return {
+            provider,
+            success: true,
+            turnId: assistantTurn.id,
+            branchId: modelBranchId
+          };
+        } catch (error: any) {
+          console.error(`Error with ${provider}:`, error);
+          
+          // Store the error message as a model turn
+          const errorMessage = error.message || "Failed to generate response";
+          const errorTurn = await storage.createTurn({
+            chatId,
+            content: `Error: ${errorMessage}`,
+            role: "assistant",
+            branchId: provider,
+            parentTurnId: userTurn.id,
+            model: provider
+          });
+          
+          return {
+            provider,
+            success: false,
+            error: errorMessage,
+            turnId: errorTurn.id,
+            branchId: provider
+          };
+        }
+      });
+      
+      // Wait for all LLM responses
+      const results = await Promise.all(llmPromises);
+      
+      res.status(201).json({
+        results
+      });
+    } catch (error: any) {
+      console.error("Compare error:", error);
+      res.status(400).json({ message: "Failed to compare models", error: error.message || "Unknown error" });
+    }
+  });
+  
   // API key routes
   apiRouter.get("/api-keys/:provider", async (req: Request, res: Response) => {
     try {
