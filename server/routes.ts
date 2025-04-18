@@ -97,6 +97,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         modelId: null
       });
       
+      // Get existing conversation history for context
+      const existingMessages = await storage.getMessages(chatId);
+      
       // Generate LLM responses in parallel
       const llmPromises = selectedModels.map(async (provider) => {
         try {
@@ -110,7 +113,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
           }
           
-          const response = await generateLLMResponse(provider, content, apiKey);
+          // Pass conversation history to the LLM for context
+          const response = await generateLLMResponse(provider, content, apiKey, existingMessages);
           
           // Save model response to storage
           await storage.createMessage({

@@ -12,23 +12,30 @@ export async function generateAnthropicResponse(
       apiKey,
     });
 
-    // Convert our conversation history format to Anthropic's format
-    const messages = conversationHistory.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.content
-    }));
-
-    // If there's no history, just use the prompt directly
-    if (messages.length === 0) {
-      messages.push({ role: 'user', content: prompt });
+    // Format history into plain text for Claude if we have any
+    let promptText = prompt;
+    
+    if (conversationHistory.length > 0) {
+      // Build a string-based conversation history since we're having typing issues
+      let conversationText = "Here's our conversation so far:\n\n";
+      
+      for (const msg of conversationHistory) {
+        const role = msg.role === 'user' ? 'Human' : 'Assistant';
+        conversationText += `${role}: ${msg.content}\n\n`;
+      }
+      
+      // Add the current prompt
+      conversationText += `Human: ${prompt}\n\nAssistant:`;
+      promptText = conversationText;
     }
 
     // Anthropic's system prompt to maintain context
     const systemPrompt = "You are Claude, an intelligent AI assistant made by Anthropic. Respond to the user based on the conversation history provided. Be helpful, harmless, and honest.";
 
+    // Use a simpler approach with a single prompt message
     const response = await anthropic.messages.create({
       max_tokens: 1024,
-      messages,
+      messages: [{ role: 'user', content: promptText }],
       model: 'claude-3-7-sonnet-20250219',
       system: systemPrompt
     });

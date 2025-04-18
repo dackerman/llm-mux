@@ -13,8 +13,9 @@ export async function generateXAIResponse(
     });
 
     // Convert our conversation history format to OpenAI-compatible format
-    const messages = conversationHistory.map(msg => ({
-      role: msg.role as 'user' | 'assistant' | 'system',
+    // Use explicit type for OpenAI API compatibility
+    const messages: Array<{role: 'user' | 'assistant' | 'system', content: string}> = conversationHistory.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
       content: msg.content
     }));
 
@@ -24,7 +25,7 @@ export async function generateXAIResponse(
     }
 
     // Add system message for context
-    const systemMessage = {
+    const systemMessage: {role: 'system', content: string} = {
       role: "system",
       content: "You are Grok, an advanced AI assistant by xAI. Respond to the user based on the conversation history provided."
     };
