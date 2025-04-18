@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { LLMCard } from "@/components/llm-card";
@@ -24,7 +24,7 @@ export function CompareModelsDialog({
   const [selectedModels, setSelectedModels] = useState<LLMProvider[]>([]);
 
   // Reset selected models when dialog opens or available models change
-  useState(() => {
+  useEffect(() => {
     setSelectedModels([]);
   }, [isOpen, availableModels]);
 

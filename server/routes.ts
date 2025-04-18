@@ -170,10 +170,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/chats/:chatId/turns", async (req: Request, res: Response) => {
     try {
       const chatId = parseInt(req.params.chatId);
+      console.log("Fetching turns for chat ID:", chatId);
       const turns = await storage.getTurns(chatId);
+      console.log("Retrieved turns:", turns);
       res.json(turns);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch turns" });
+      console.error("Error fetching turns:", error);
+      res.status(500).json({ message: "Failed to fetch turns", error: error.message });
     }
   });
 
@@ -181,10 +184,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const chatId = parseInt(req.params.chatId);
       const branchId = req.params.branchId;
+      console.log("Fetching branch turns for chat ID:", chatId, "branch ID:", branchId);
       const turns = await storage.getBranchTurns(chatId, branchId);
+      console.log("Retrieved branch turns:", turns);
       res.json(turns);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch branch" });
+      console.error("Error fetching branch turns:", error);
+      res.status(500).json({ message: "Failed to fetch branch", error: error.message });
     }
   });
 
