@@ -55,7 +55,7 @@ export function TurnMessage({
               onClick={() => onCompareWithModels(turn.id)}
               className="text-xs"
             >
-              <span className="material-icons text-xs mr-1">compare</span>
+              <span className="material-icons text-xs mr-1">compare_arrows</span>
               Compare with...
             </Button>
           </div>
@@ -136,7 +136,7 @@ export function TurnMessage({
     <div className="flex flex-col space-y-2" ref={messageRef}>
       <div className="flex items-center">
         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-          <span className="material-icons text-gray-600 text-sm">compare</span>
+          <span className="material-icons text-gray-600 text-sm">compare_arrows</span>
         </div>
         <div className="flex items-center">
           <span className="text-xs font-medium text-gray-600 mr-2">Multiple Responses</span>
@@ -180,7 +180,8 @@ export function TurnMessage({
                         onClick={() => onContinueWithBranch(branch.branchId)}
                         className="h-6 text-xs"
                       >
-                        <span className="material-icons text-xs">subdirectory_arrow_right</span>
+                        <span className="material-icons text-xs mr-1">arrow_forward</span>
+                        Continue
                       </Button>
                     )}
                   </div>
@@ -268,7 +269,7 @@ export function TurnMessage({
                             onClick={() => onContinueWithBranch(branch.branchId)}
                             className="w-full text-xs justify-center"
                           >
-                            <span className="material-icons text-xs mr-1">subdirectory_arrow_right</span>
+                            <span className="material-icons text-xs mr-1">arrow_forward</span>
                             Continue
                           </Button>
                         </div>
