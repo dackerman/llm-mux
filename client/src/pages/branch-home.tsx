@@ -101,16 +101,40 @@ export default function BranchHome() {
   const { 
     data: branchTurns, 
     isLoading: isLoadingBranchTurns,
-    refetch: refetchBranchTurns 
+    refetch: refetchBranchTurns,
+    error: branchTurnsError
   } = useQuery({
     queryKey: [`/api/chats/${currentChatId}/branches/${currentBranchId}`],
     queryFn: async () => {
-      const response = await fetch(`/api/chats/${currentChatId}/branches/${currentBranchId}`);
-      if (!response.ok) throw new Error('Failed to fetch branch turns');
-      return response.json() as Promise<Turn[]>;
+      try {
+        console.log(`Fetching branch turns for chat ${currentChatId}, branch ${currentBranchId}`);
+        const response = await fetch(`/api/chats/${currentChatId}/branches/${currentBranchId}`);
+        if (!response.ok) {
+          console.error(`Error response from branch turns API:`, response.status, response.statusText);
+          throw new Error('Failed to fetch branch turns');
+        }
+        const data = await response.json();
+        console.log(`Received branch turns:`, data);
+        return data as Turn[];
+      } catch (error) {
+        console.error('Error fetching branch turns:', error);
+        throw error;
+      }
     },
     enabled: !!currentChatId && !!currentBranchId
   });
+  
+  // Show error toast if branch turns fetch fails
+  useEffect(() => {
+    if (branchTurnsError) {
+      toast({
+        title: "Error Loading Conversation",
+        description: "Failed to load the conversation. Please try refreshing the page.",
+        variant: "destructive"
+      });
+      console.error("Branch turns error:", branchTurnsError);
+    }
+  }, [branchTurnsError, toast]);
 
   // Compare models mutation
   const compareModelsMutation = useMutation({
@@ -204,6 +228,10 @@ export default function BranchHome() {
       groupedTurns[turn.parentTurnId].push(turn);
     }
   });
+  
+  // Debug logs for troubleshooting
+  console.log("Branch turns:", branchTurns);
+  console.log("Grouped turns:", groupedTurns);
 
   const toggleModel = (provider: LLMProvider) => {
     if (!apiKeyStatuses) return;
