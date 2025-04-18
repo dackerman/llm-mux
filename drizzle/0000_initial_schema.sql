@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS "api_keys" (
-  "provider" text PRIMARY KEY NOT NULL,
+  "id" serial PRIMARY KEY NOT NULL,
+  "provider" text UNIQUE NOT NULL,
   "api_key" text NOT NULL
 );
 
