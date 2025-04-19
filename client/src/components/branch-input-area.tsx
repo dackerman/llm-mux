@@ -86,23 +86,7 @@ export function BranchInputArea({
     }
   });
 
-  // Handle saving the streamed response
-  const saveStreamedResponseMutation = useMutation({
-    mutationFn: async ({ provider, content }: { provider: LLMProvider, content: string }) => {
-      return apiRequest('POST', `/api/chats/${chatId}/turns`, {
-        content: `Streamed response: ${content}`,
-        branchId,
-        parentTurnId: null, // This would need to be updated with the actual user turn ID
-        model: provider,
-        role: 'assistant'
-      });
-    },
-    onSuccess: () => {
-      // Invalidate queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/turns`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/branches/${branchId}`] });
-    }
-  });
+  // We don't need this mutation anymore as all responses are saved by the server
 
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();

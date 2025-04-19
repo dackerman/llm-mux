@@ -80,6 +80,36 @@ export function useMultiStreaming() {
     const results: ResponseRecord = {};
     
     try {
+      // Create a user turn first to get its ID
+      // This ensures all model responses reference the same user message
+      let userTurnId = parentTurnId;
+      
+      if (!userTurnId) {
+        try {
+          const createUserTurnResponse = await fetch(`/api/chats/${chatId}/turns`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content,
+              branchId,
+              parentTurnId,
+              selectedModels: [providers[0]] // Just need one model to create the user turn
+            })
+          });
+          
+          if (createUserTurnResponse.ok) {
+            const data = await createUserTurnResponse.json();
+            if (data.userTurnId) {
+              userTurnId = data.userTurnId;
+              console.log(`Created shared user turn ${userTurnId} for multi-model streaming`);
+            }
+          }
+        } catch (e) {
+          console.error('Error creating shared user turn:', e);
+          // Will proceed without shared turn ID if this fails
+        }
+      }
+      
       // Start streams for each provider
       const streamPromises = providers.map(async (provider) => {
         const controller = new AbortController();
@@ -96,7 +126,7 @@ export function useMultiStreaming() {
             body: JSON.stringify({
               content,
               branchId,
-              parentTurnId,
+              parentTurnId: userTurnId, // Use the shared user turn ID if we got one
               provider
             }),
             signal: controller.signal

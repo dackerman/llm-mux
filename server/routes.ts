@@ -406,7 +406,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = await Promise.all(llmPromises);
       
       res.status(201).json({
-        results
+        results,
+        userTurnId: userTurn.id
       });
     } catch (error: any) {
       console.error("Compare error:", error);
