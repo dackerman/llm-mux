@@ -435,15 +435,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { content, branchId, parentTurnId, provider } = streamRequestSchema.parse(req.body);
       
-      // Create user turn
-      const userTurn = await storage.createTurn({
-        chatId,
-        content,
-        role: "user",
-        branchId,
-        parentTurnId,
-        model: null
-      });
+      // For multi-streaming, we need to make sure we don't create duplicate user turns
+      // First, get all existing turns for this branch to check for duplicates
+      const existingTurns = await storage.getTurnsByBranch(chatId, branchId);
+      
+      // Find recently created turns with this exact content (to handle multi-model streaming)
+      const recentUserTurns = existingTurns
+        .filter(turn => 
+          turn.role === 'user' && 
+          turn.content === content &&
+          // Only consider turns created in the last 5 seconds
+          (new Date().getTime() - new Date(turn.timestamp).getTime() < 5000)
+        )
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      let userTurn;
+      // If we found a matching recent turn, use it
+      if (recentUserTurns.length > 0) {
+        userTurn = recentUserTurns[0];
+        console.log(`Using existing user turn ${userTurn.id} for streaming request (multi-model streaming)`);
+      } else {
+        // Create a new user turn
+        userTurn = await storage.createTurn({
+          chatId,
+          content,
+          role: "user",
+          branchId,
+          parentTurnId,
+          model: null
+        });
+      }
       
       // Get API key for the requested provider
       const apiKey = await storage.getApiKey(provider);
