@@ -61,7 +61,7 @@ A modern web application that allows you to chat with multiple large language mo
    - Type your message in the input box at the bottom of the screen
    - Press Enter or click the send button to submit
    - Your message will be sent to all selected models simultaneously
-   - When a single model is selected, streaming mode is available to see responses in real-time
+   - When a single model is selected, streaming is automatically enabled to see responses in real-time
 
 4. **Using the Branching System**:
    - After receiving a response, click "Compare with..." button below your message

@@ -19,9 +19,9 @@ When streaming is enabled:
 
 ## Using Streaming in Hatch
 
-### Enabling/Disabling Streaming
+### Automatic Streaming for Single Models
 
-By default, streaming is enabled for single-model conversations. When you select only one model, you'll see a "Stream" checkbox in the input area that allows you to toggle streaming on or off.
+Streaming is automatically enabled when you select only one model for a conversation. This provides the best user experience by showing model responses in real-time. When multiple models are selected, the standard non-streaming approach is used.
 
 ### Limitations
 

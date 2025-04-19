@@ -26,7 +26,7 @@ export function BranchInputArea({
 }: BranchInputAreaProps) {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [enableStreaming, setEnableStreaming] = useState(true); // Default to using streaming
+  // Always use streaming for single model responses - no toggle needed
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -93,10 +93,9 @@ export function BranchInputArea({
     try {
       setIsSubmitting(true);
       
-      // If we're using streaming and have only one model selected
-      if (enableStreaming && selectedModels.length === 1) {
-        // Create a user turn (this will be handled by the streaming endpoint)
-        // Start streaming with the first (and only) selected model
+      // Automatically use streaming for single model, regular approach for multiple
+      if (selectedModels.length === 1) {
+        // When only one model is selected, always use streaming for better UX
         startStream({
           chatId,
           content: message,
@@ -173,17 +172,13 @@ export function BranchInputArea({
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 {selectedModels.length > 0 ? (
                   <span>
-                    Comparing with: {selectedModels.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ')}
-                    {selectedModels.length === 1 && (
-                      <label className="ml-3 inline-flex items-center">
-                        <input 
-                          type="checkbox"
-                          checked={enableStreaming}
-                          onChange={() => setEnableStreaming(!enableStreaming)}
-                          className="form-checkbox h-3 w-3 text-blue-500"
-                        />
-                        <span className="ml-1">Stream</span>
-                      </label>
+                    {selectedModels.length === 1 ? (
+                      <>
+                        Using: <span className="font-medium">{selectedModels[0].charAt(0).toUpperCase() + selectedModels[0].slice(1)}</span>
+                        {isStreaming && <span className="ml-2 text-green-500">• Streaming response</span>}
+                      </>
+                    ) : (
+                      <>Comparing with: {selectedModels.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ')}</>
                     )}
                   </span>
                 ) : (
