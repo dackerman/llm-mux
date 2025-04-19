@@ -181,7 +181,34 @@ export class MemStorage implements IStorage {
 
   async getTurnsByBranch(chatId: number, branchId: string): Promise<Turn[]> {
     const chatTurns = this.turns.get(chatId) || [];
-    return chatTurns.filter(turn => turn.branchId === branchId || turn.branchId === 'root');
+    
+    if (branchId === 'root') {
+      // For the root branch, return only root turns and one set of assistant responses
+      // (preferably from the default model, or the first one we find)
+      const userTurns = chatTurns.filter(turn => turn.role === 'user' && turn.branchId === 'root');
+      const result: Turn[] = [...userTurns];
+      
+      // For each user turn, find just one response to display
+      for (const userTurn of userTurns) {
+        const responses = chatTurns.filter(turn => 
+          turn.role === 'assistant' && turn.parentTurnId === userTurn.id
+        );
+        if (responses.length > 0) {
+          // Prioritize adding a response from the model that has the same branchId as the model name
+          const defaultResponse = responses.find(r => r.branchId === r.model) || responses[0];
+          result.push(defaultResponse);
+        }
+      }
+      
+      return result;
+    } else {
+      // For a specific model branch, return only the root user turns and this model's responses
+      return chatTurns.filter(turn => 
+        turn.branchId === branchId || 
+        (turn.branchId === 'root' && turn.role === 'user') ||
+        (turn.role === 'assistant' && turn.model === branchId)
+      );
+    }
   }
 
   async createTurn(insertTurn: InsertTurn): Promise<Turn> {
@@ -222,30 +249,8 @@ export class MemStorage implements IStorage {
   }
 
   async getBranchTurns(chatId: number, branchId: string): Promise<Turn[]> {
-    const allTurns = this.turns.get(chatId) || [];
-    
-    // Get all root branch turns
-    const rootTurns = allTurns.filter(turn => turn.branchId === 'root');
-    
-    // Get the IDs of root turns for finding related assistant responses
-    const rootTurnIds = rootTurns.map(turn => turn.id);
-    
-    // Get turns from the specified branch plus any assistant turns that are responses
-    // to root turns (regardless of their branch)
-    const branchSpecificTurns = allTurns.filter(turn => 
-      (turn.branchId === branchId) || 
-      (turn.role === 'assistant' && turn.parentTurnId && rootTurnIds.includes(turn.parentTurnId))
-    );
-    
-    // Combine, deduplicate, and sort
-    const combinedTurns = [...rootTurns, ...branchSpecificTurns];
-    const uniqueTurns = Array.from(
-      new Map(combinedTurns.map(turn => [turn.id, turn])).values()
-    );
-    
-    return uniqueTurns.sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+    // Use the filtered version that matches the updated getTurnsByBranch
+    return this.getTurnsByBranch(chatId, branchId);
   }
 
   // API key methods
