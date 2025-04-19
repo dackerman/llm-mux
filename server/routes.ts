@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage-pg-setup";
 import { z } from "zod";
 import { insertChatSchema, insertMessageSchema, insertTurnSchema, LLMProviderSchema } from "@shared/schema";
-import { generateLLMResponse, generateLLMResponseFromTurns } from "./llm";
+import { generateLLMResponse, generateLLMResponseFromTurns, streamLLMResponseFromTurns } from "./llm";
 import crypto from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const turns = await storage.getTurns(chatId);
       console.log("Retrieved turns:", turns);
       res.json(turns);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching turns:", error);
       res.status(500).json({ message: "Failed to fetch turns", error: error.message });
     }
@@ -188,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const turns = await storage.getBranchTurns(chatId, branchId);
       console.log("Retrieved branch turns:", turns);
       res.json(turns);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching branch turns:", error);
       res.status(500).json({ message: "Failed to fetch branch", error: error.message });
     }
@@ -411,6 +411,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Compare error:", error);
       res.status(400).json({ message: "Failed to compare models", error: error.message || "Unknown error" });
+    }
+  });
+  
+  // Streaming response endpoint
+  apiRouter.post("/chats/:chatId/stream", async (req: Request, res: Response) => {
+    try {
+      const chatId = parseInt(req.params.chatId);
+      
+      // Check if chat exists
+      const chat = await storage.getChat(chatId);
+      if (!chat) {
+        return res.status(404).json({ message: "Chat not found" });
+      }
+      
+      // Validate request
+      const streamRequestSchema = z.object({
+        content: z.string().min(1),
+        branchId: z.string(),
+        parentTurnId: z.string().optional(),
+        provider: LLMProviderSchema
+      });
+      
+      const { content, branchId, parentTurnId, provider } = streamRequestSchema.parse(req.body);
+      
+      // Create user turn
+      const userTurn = await storage.createTurn({
+        chatId,
+        content,
+        role: "user",
+        branchId,
+        parentTurnId,
+        model: null
+      });
+      
+      // Get API key for the requested provider
+      const apiKey = await storage.getApiKey(provider);
+      if (!apiKey) {
+        return res.status(400).json({ message: `API key not configured for ${provider}` });
+      }
+      
+      // Get existing conversation for this branch
+      const conversationHistory = await storage.getBranchTurns(chatId, branchId);
+      
+      // Generate a unique branch ID for this model's responses if not already in a specific branch
+      const modelBranchId = branchId === 'root' ? provider : branchId;
+      
+      // Begin streaming the response
+      let completeResponse = "";
+      
+      // Set up a variable to track if the response generation is complete
+      let isCompleted = false;
+      
+      // Handle the case where the client disconnects
+      req.on('close', async () => {
+        if (!isCompleted) {
+          console.log(`Client disconnected before streaming was complete. Saving partial response for chat ${chatId}, turn ${userTurn.id}`);
+          
+          // Save whatever part of the response we have accumulated
+          await storage.createTurn({
+            chatId,
+            content: completeResponse || "Response interrupted",
+            role: "assistant",
+            branchId: modelBranchId,
+            parentTurnId: userTurn.id,
+            model: provider
+          });
+        }
+      });
+      
+      // Use the streaming function to process the response
+      await streamLLMResponseFromTurns(
+        provider,
+        content,
+        apiKey,
+        res,
+        conversationHistory
+      );
+      
+      // Set the completion flag
+      isCompleted = true;
+      
+      // The streamLLMResponseFromTurns function will handle sending the response and ending the connection
+    } catch (error: any) {
+      console.error("Streaming error:", error);
+      
+      // Set SSE headers if they haven't been set yet
+      if (!res.headersSent) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        });
+      }
+      
+      // Send the error to the client
+      res.write(`data: ${JSON.stringify({ error: error.message || "Unknown error" })}\n\n`);
+      res.end();
     }
   });
   
