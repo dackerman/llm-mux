@@ -8,6 +8,7 @@ A modern web application that allows you to chat with multiple large language mo
 
 - **Multi-Model Conversations**: Send a single message to multiple LLMs at once and compare their responses
 - **Powerful Branching System**: Continue conversations with your preferred model's response, creating multiple parallel conversation paths
+- **Streaming Responses**: Watch AI responses appear in real-time, reducing perceived latency (see [Streaming Guide](./docs/streaming-guide.md))
 - **Supported Models**:
   - 🟣 **Claude** (Anthropic) - Latest Claude 3.7 Sonnet
   - 🟢 **GPT** (OpenAI) - Latest GPT-4o model
@@ -60,6 +61,7 @@ A modern web application that allows you to chat with multiple large language mo
    - Type your message in the input box at the bottom of the screen
    - Press Enter or click the send button to submit
    - Your message will be sent to all selected models simultaneously
+   - When a single model is selected, streaming mode is available to see responses in real-time
 
 4. **Using the Branching System**:
    - After receiving a response, click "Compare with..." button below your message
@@ -85,6 +87,7 @@ A modern web application that allows you to chat with multiple large language mo
 ### Backend
 - Node.js with Express
 - PostgreSQL database with Drizzle ORM
+- Server-Sent Events (SSE) for streaming responses
 - Modular LLM integration with providers for:
   - Anthropic Claude
   - OpenAI GPT
@@ -119,6 +122,7 @@ A modern web application that allows you to chat with multiple large language mo
 - `/drizzle`: Database migrations
 - `/docs`: Documentation files
   - `/branching-guide.md`: Detailed guide to the LLM branching system
+  - `/streaming-guide.md`: Guide to using real-time response streaming
 
 ### Running Database Migrations
 

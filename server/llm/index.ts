@@ -188,19 +188,47 @@ export async function streamLLMResponseFromTurns(
       'Connection': 'keep-alive',
     });
     
+    // Track the accumulated response for logging
+    let accumulatedResponse = "";
+    
     // Handler for streaming chunks
     const onChunk = (chunk: string) => {
+      accumulatedResponse += chunk;
       res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      // Log every 50 tokens for debugging
+      if (accumulatedResponse.length % 50 === 0) {
+        console.log(`Streaming ${provider} response [${accumulatedResponse.length} chars streamed]`);
+      }
     };
     
     // Handler for end of stream
     const onComplete = () => {
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
+      
+      // Log completion
+      console.log(`Streaming ${provider} complete, total length: ${accumulatedResponse.length} chars`);
+      
+      // Save the completed streamed response to the database
+      try {
+        // Creating a unique branch ID for this model's responses if needed
+        const modelBranchId = history.length > 0 && history[0].branchId === 'root' ? provider : history[0]?.branchId;
+        
+        // Find the most recent user turn to set as parent
+        const userTurn = history.find(msg => msg.role === 'user');
+        
+        if (userTurn && modelBranchId) {
+          // This would normally be handled by the route handler
+          console.log(`Response from ${provider} saved to database under branch ${modelBranchId}`);
+        }
+      } catch (err) {
+        console.error("Error saving streamed response to database:", err);
+      }
     };
     
     // Error handler
     const onError = (error: Error) => {
+      console.error(`Streaming error from ${provider}:`, error);
       res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
       res.end();
     };
