@@ -19,22 +19,41 @@ When streaming is enabled:
 
 ## Using Streaming in Hatch
 
-### Automatic Streaming for Single Models
+### Automatic Streaming for All Conversations
 
-Streaming is automatically enabled when you select only one model for a conversation. This provides the best user experience by showing model responses in real-time. When multiple models are selected, the standard non-streaming approach is used.
+Streaming is automatically enabled for all conversations in Hatch, whether you're using a single model or comparing multiple models:
+
+- **Single Model Streaming**: When only one model is selected, you'll see the response stream in a single box.
+- **Multi-Model Streaming**: When multiple models are selected, you'll see parallel streaming boxes with fixed heights showing each model's response as it's generated. All responses stream simultaneously, letting you compare them in real-time.
+
+### Comparing Multiple Models with Streaming
+
+One of the most powerful features of Hatch is the ability to watch multiple AI models generate their responses in parallel:
+
+- Each model has its own streaming box with a colored border matching the model's identity
+- Content scrolls automatically to keep the most recent output visible
+- View different response styles and speeds side-by-side
+- Cancel individual streams or all streams at once
 
 ### Limitations
 
-- Streaming currently works only when a single model is selected. When comparing multiple models, the standard (non-streaming) approach is used.
 - Not all providers may support streaming with the same level of performance.
 
 ### Streaming Status Indicators
 
-When a response is being streamed:
+When responses are being streamed:
 
+#### Single Model
 - A green pulsing indicator appears at the top of the streaming preview
 - The text area is disabled until the stream completes
-- A "Cancel Stream" button allows you to stop the generation at any point
+- A "Cancel Stream" button allows you to stop the generation
+
+#### Multiple Models
+- Each model's box shows its own streaming status with a pulsing indicator
+- Each individual stream can be canceled separately
+- A "Cancel All Streams" button lets you stop all generations at once
+- The text area is disabled until all streams complete
+- A status indicator shows "Streaming responses" when in progress
 
 ## Technical Implementation
 

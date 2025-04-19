@@ -245,7 +245,7 @@ export function BranchInputArea({
                 }
               }}
               className="min-h-20 p-3 bg-transparent border-0 resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              disabled={isDisabled || isSubmitting || isStreaming}
+              disabled={isDisabled || isSubmitting || isStreaming || isAnyStreaming}
             />
             
             <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 p-2">
@@ -258,7 +258,10 @@ export function BranchInputArea({
                         {isStreaming && <span className="ml-2 text-green-500">• Streaming response</span>}
                       </>
                     ) : (
-                      <>Comparing with: {selectedModels.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ')}</>
+                      <>
+                        Comparing with: {selectedModels.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ')}
+                        {isAnyStreaming && <span className="ml-2 text-green-500">• Streaming responses</span>}
+                      </>
                     )}
                   </span>
                 ) : (
@@ -275,15 +278,25 @@ export function BranchInputArea({
                   Cancel Stream
                 </button>
               )}
+              
+              {isAnyStreaming && (
+                <button 
+                  type="button"
+                  onClick={cancelAllStreams}
+                  className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                >
+                  Cancel All Streams
+                </button>
+              )}
             </div>
           </div>
           
           <Button 
             type="submit" 
-            disabled={!message.trim() || isDisabled || isSubmitting || isStreaming}
+            disabled={!message.trim() || isDisabled || isSubmitting || isStreaming || isAnyStreaming}
             className="h-11 px-4"
           >
-            {isSubmitting || isStreaming ? (
+            {isSubmitting || isStreaming || isAnyStreaming ? (
               <span className="material-icons animate-spin">progress_activity</span>
             ) : (
               <span className="material-icons">send</span>
