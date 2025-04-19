@@ -220,12 +220,47 @@ export default function BranchHome() {
 
   // Group assistant turns by parent turn ID for multi-model responses
   const groupedTurns: Record<string, Turn[]> = {};
+  
+  // First pass: collect all possible assistant turns from all branches
+  allTurns?.forEach(turn => {
+    if (turn.role === 'assistant' && turn.parentTurnId) {
+      // Check if this parent turn ID exists in the branchTurns
+      const parentExists = branchTurns?.some(bt => bt.id === turn.parentTurnId);
+      
+      if (parentExists) {
+        if (!groupedTurns[turn.parentTurnId]) {
+          groupedTurns[turn.parentTurnId] = [];
+        }
+        
+        // Only add if not already in the array
+        const alreadyExists = groupedTurns[turn.parentTurnId].some(t => 
+          t.id === turn.id || 
+          (t.model === turn.model && t.parentTurnId === turn.parentTurnId)
+        );
+        
+        if (!alreadyExists) {
+          groupedTurns[turn.parentTurnId].push(turn);
+        }
+      }
+    }
+  });
+  
+  // Second pass: add assistant turns from current branch
   branchTurns?.forEach(turn => {
     if (turn.role === 'assistant' && turn.parentTurnId) {
       if (!groupedTurns[turn.parentTurnId]) {
         groupedTurns[turn.parentTurnId] = [];
       }
-      groupedTurns[turn.parentTurnId].push(turn);
+      
+      // Only add if not already in the array
+      const alreadyExists = groupedTurns[turn.parentTurnId].some(t => 
+        t.id === turn.id || 
+        (t.model === turn.model && t.parentTurnId === turn.parentTurnId)
+      );
+      
+      if (!alreadyExists) {
+        groupedTurns[turn.parentTurnId].push(turn);
+      }
     }
   });
   

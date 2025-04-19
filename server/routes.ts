@@ -491,8 +491,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Patch the response.write method to capture the streamed content
-      const originalWrite = res.write.bind(res);
-      res.write = function(chunk: any, encoding?: BufferEncoding, callback?: (error: Error | null | undefined) => void) {
+      const originalWrite = res.write;
+      
+      // We need to handle Node.js's write method which can be called in multiple ways
+      const newWrite = function(chunk: any, encodingOrCallback?: BufferEncoding | ((error: Error | null | undefined) => void), callback?: (error: Error | null | undefined) => void): boolean {
         try {
           // Parse the streamed chunk if it's a data event
           const chunkStr = chunk.toString();
@@ -505,8 +507,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (e) {
           // Ignore parsing errors
         }
-        return originalWrite(chunk, encoding, callback);
+        
+        // Handle different call signatures
+        if (typeof encodingOrCallback === 'function') {
+          return originalWrite.call(res, chunk, encodingOrCallback);
+        } else {
+          return originalWrite.call(res, chunk, encodingOrCallback, callback);
+        }
       };
+      
+      res.write = newWrite as any; // Type assertion to avoid complex overloading
       
       // Handle the case where the client disconnects
       req.on('close', async () => {
