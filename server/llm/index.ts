@@ -211,18 +211,11 @@ export async function streamLLMResponseFromTurns(
       
       // Save the completed streamed response to the database
       try {
-        // Creating a unique branch ID for this model's responses if needed
-        const modelBranchId = history.length > 0 && history[0].branchId === 'root' ? provider : history[0]?.branchId;
-        
-        // Find the most recent user turn to set as parent
-        const userTurn = history.find(msg => msg.role === 'user');
-        
-        if (userTurn && modelBranchId) {
-          // This would normally be handled by the route handler
-          console.log(`Response from ${provider} saved to database under branch ${modelBranchId}`);
-        }
+        // We don't need to save the response here - the routes.ts file will handle saving it
+        // The route handler has all the information about branchId and chat context
+        console.log(`Streaming from ${provider} completed successfully`);
       } catch (err) {
-        console.error("Error saving streamed response to database:", err);
+        console.error("Error completing stream:", err);
       }
     };
     

@@ -485,6 +485,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set up a variable to track if the response generation is complete
       let isCompleted = false;
       
+      // Set up a function to capture streaming chunks
+      const captureStream = (data: string) => {
+        completeResponse += data;
+      };
+      
+      // Patch the response.write method to capture the streamed content
+      const originalWrite = res.write.bind(res);
+      res.write = function(chunk: any, encoding?: BufferEncoding, callback?: (error: Error | null | undefined) => void) {
+        try {
+          // Parse the streamed chunk if it's a data event
+          const chunkStr = chunk.toString();
+          if (chunkStr.startsWith('data: ')) {
+            const data = JSON.parse(chunkStr.substring(6).trim());
+            if (data.chunk) {
+              captureStream(data.chunk);
+            }
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+        return originalWrite(chunk, encoding, callback);
+      };
+      
       // Handle the case where the client disconnects
       req.on('close', async () => {
         if (!isCompleted) {
@@ -513,6 +536,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set the completion flag
       isCompleted = true;
+      
+      // Restore original write method
+      res.write = originalWrite;
+      
+      // Save the complete response
+      if (completeResponse) {
+        console.log(`Saving complete ${provider} response (${completeResponse.length} chars) for chat ${chatId}`);
+        await storage.createTurn({
+          chatId,
+          content: completeResponse,
+          role: "assistant",
+          branchId: modelBranchId,
+          parentTurnId: userTurn.id,
+          model: provider
+        });
+      }
       
       // The streamLLMResponseFromTurns function will handle sending the response and ending the connection
     } catch (error: any) {

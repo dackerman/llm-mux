@@ -123,10 +123,32 @@ export function BranchInputArea({
           providers: selectedModels,
           onComplete: (results) => {
             // The streaming endpoint handles saving the responses,
-            // we just need to refresh the queries
+            // but we need more aggressive invalidation to ensure all model responses show up
+            
+            // First invalidate the general turn query
             queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/turns`] });
+            
+            // Then invalidate all branch queries to ensure each model's branch is refreshed
             queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/branches/${branchId}`] });
-            onMessageSent();
+            
+            // For each model that was streamed, also invalidate its specific branch
+            Object.keys(results).forEach(provider => {
+              // If the branch is root, each model gets its own branch
+              if (branchId === 'root') {
+                queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/branches/${provider}`] });
+              }
+            });
+            
+            // Force a small delay before triggering onMessageSent to ensure database has time to update
+            setTimeout(() => {
+              onMessageSent();
+              
+              // Double-check with another invalidation after the UI is updated
+              setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/turns`] });
+                queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/branches/${branchId}`] });
+              }, 500);
+            }, 200);
           }
         });
       } else {
