@@ -157,7 +157,7 @@ export function TurnMessage({
 
       {isMobile ? (
         // Mobile: Accordion style
-        <div className="ml-11 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <div className="ml-11 space-y-3">
           {branches.map((branch, index) => {
             const provider = branch.model as LLMProvider;
             const config = provider ? LLM_PROVIDERS[provider] : null;
@@ -165,8 +165,13 @@ export function TurnMessage({
             
             return (
               <div 
-                key={branch.id}
-                className={`border-t border-gray-200 dark:border-gray-700 ${index === 0 ? 'border-t-0' : ''}`}
+                key={branch.id || `branch-${index}`}
+                className={`border rounded-lg overflow-hidden ${
+                  isError 
+                    ? 'border-red-200 dark:border-red-800/30' 
+                    : (config ? '' : 'border-gray-200 dark:border-gray-700')
+                }`}
+                style={config && !isError ? { borderColor: config.borderColor } : undefined}
               >
                 <div 
                   className={`p-3 ${
@@ -186,7 +191,7 @@ export function TurnMessage({
                       {config ? config.name : 'Assistant'} {isError ? '(Error)' : ''}
                     </span>
                     
-                    {onContinueWithBranch && (
+                    {onContinueWithBranch && !isError && (
                       <Button
                         variant="ghost"
                         size="sm"
